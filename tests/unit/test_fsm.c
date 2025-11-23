@@ -23,9 +23,9 @@ ZTEST(radar_fsm, test_timeout_without_end_no_data)
 {
     struct sensor_fsm fsm;
     sensor_fsm_init(&fsm);
-    
+   
     sensor_fsm_handle_start(&fsm, 1000);
-    
+   
     struct sensor_data out;
     bool ok = sensor_fsm_finalize(&fsm, &out);
     zassert_false(ok, "No end signal, should not produce data");
