@@ -1,0 +1,40 @@
+mainmenu "Integration Tests Configuration"
+
+# Importar apenas as definições necessárias inline
+config RADAR_SENSOR_DISTANCE_MM
+    int "Distance between sensors (mm)"
+    default 5000
+
+config RADAR_SPEED_LIMIT_LIGHT_KMH
+    int "Speed limit for light vehicles (km/h)"
+    default 60
+
+config RADAR_SPEED_LIMIT_HEAVY_KMH
+    int "Speed limit for heavy vehicles (km/h)"
+    default 40
+
+config RADAR_WARNING_THRESHOLD_PERCENT
+    int "Warning threshold percentage"
+    default 90
+
+config RADAR_CAMERA_FAILURE_RATE_PERCENT
+    int "Camera simulated failure rate (%)"
+    default 10
+
+config RADAR_QUEUE_DEPTH
+    int "Message queue depth for radar queues"
+    default 10
+
+config RADAR_INFRACTION_LOG_SIZE
+    int "Ring buffer size for infractions"
+    default 32
+
+config RADAR_AXLE_TIMEOUT_MS
+    int "Axle counting timeout (ms)"
+    default 2000
+
+config RADAR_TELEMETRY_INTERVAL_MS
+    int "Telemetry logging interval (ms)"
+    default 10000
+
+source "Kconfig.zephyr"

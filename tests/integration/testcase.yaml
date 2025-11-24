@@ -1,0 +1,4 @@
+tests:
+  test.integration.manual:
+    platform_allow: native_sim mps2_an385
+    tags: integration
