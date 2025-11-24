@@ -5,59 +5,79 @@ config RADAR_SENSOR_DISTANCE_MM
     default 5000
     help
       Distance between the two magnetic sensors in millimeters.
+      This value is used to calculate vehicle speed based on travel time.
+      Larger distances provide more accurate measurements but require more space.
 
 config RADAR_SPEED_LIMIT_LIGHT_KMH
     int "Speed limit for light vehicles (km/h)"
     default 60
+    range 10 200
     help
-      Speed limit for vehicles classified as light.
+      Maximum allowed speed for vehicles with up to 2 axles (cars, motorcycles).
+      When exceeded, triggers camera activation and logs infraction with timestamp.
+      Adjust according to local traffic regulations for light vehicles.
 
 config RADAR_SPEED_LIMIT_HEAVY_KMH
     int "Speed limit for heavy vehicles (km/h)"
     default 40
+    range 10 150
     help
-      Speed limit for vehicles classified as heavy.
+      Maximum allowed speed for vehicles with 3 or more axles (trucks, buses).
+      Typically lower than light vehicle limits due to safety regulations.
+      When exceeded, activates camera and records complete infraction data.
 
 config RADAR_WARNING_THRESHOLD_PERCENT
     int "Warning threshold percentage"
     default 90
-    range 0 100
+    range 50 99
     help
-      Percentage of the speed limit that triggers a warning.
+      Percentage of speed limit that triggers yellow warning status.
+      Creates a soft alert zone before actual infraction (e.g., 54 km/h at 90% of 60 km/h).
+      Recommended range: 85-95% for effective traffic monitoring.
 
 config RADAR_CAMERA_FAILURE_RATE_PERCENT
     int "Camera simulated failure rate (%)"
     default 10
     range 0 100
     help
-      Probability of the simulated camera failing to read a plate.
+      Probability of camera failing to read license plates during simulation.
+      Simulates real conditions like poor lighting, motion blur, or dirty plates.
+      Set to 0 for perfect reads during testing; 10% typical for real-world systems.
 
 config RADAR_QUEUE_DEPTH
-	int "Message queue depth for radar queues"
-	default 10
-	range 1 128
-	help
-	  Number of messages buffered in sensor and display queues.
+    int "Message queue depth for radar queues"
+    default 10
+    range 1 128
+    help
+      Number of messages buffered in sensor and display queues.
+      Larger values handle traffic bursts better but consume more RAM.
+      Increase to 20-30 for high-traffic areas; monitor logs for overflow warnings.
 
 config RADAR_INFRACTION_LOG_SIZE
-	int "Ring buffer size for infractions"
-	default 32
-	range 1 512
-	help
-	  Number of infraction records kept in memory.
+    int "Ring buffer size for infractions"
+    default 32
+    range 1 512
+    help
+      Number of infraction records kept in memory (circular buffer).
+      Each record: ~45 bytes (timestamp, speed, type, plate, validity).
+      Consider upload frequency and traffic volume when sizing.
 
 config RADAR_AXLE_TIMEOUT_MS
-	int "Axle counting timeout (ms)"
-	default 2000
-	range 100 10000
-	help
-	  Timeout after last axle pulse to finalize a measurement.
+    int "Axle counting timeout (ms)"
+    default 2000
+    range 100 10000
+    help
+      Timeout after last axle pulse before finalizing vehicle measurement.
+      Too short: splits long vehicles; too long: merges separate vehicles.
+      2000ms covers ~33m at 60 km/h, suitable for most scenarios.
 
 config RADAR_TELEMETRY_INTERVAL_MS
-	int "Telemetry logging interval (ms)"
-	default 10000
-	range 500 600000
-	help
-	  Interval for periodic logging of counters and statistics.
+    int "Telemetry logging interval (ms)"
+    default 10000
+    range 500 600000
+    help
+      Interval between periodic logging of system statistics and counters.
+      Logs vehicle counts, status distribution, and camera performance.
+      Use 10000ms for development, 60000ms for production to reduce log volume.
 
 source "Kconfig.zephyr"
