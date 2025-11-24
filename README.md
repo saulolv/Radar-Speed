@@ -1,5 +1,11 @@
 # Radar Eletrônico com Classificação de Veículos (Zephyr RTOS)
 
+## Alunos
+- Camila Maria Farias Silva
+- Saulo Roberto dos Santos
+
+## Sobre o Projeto
+
 Este projeto implementa um sistema simulado de radar eletrônico utilizando o **Zephyr RTOS** na plataforma `mps2_an385` (emulada via QEMU). O sistema é capaz de detectar a passagem de veículos, calcular sua velocidade, classificar entre veículos leves e pesados, exibir o status em um display virtual (com cores ANSI no terminal) e simular o acionamento de uma câmera para registro de infrações.
 
 ## Funcionalidades
@@ -21,6 +27,7 @@ Este projeto implementa um sistema simulado de radar eletrônico utilizando o **
     *   Simula falhas de leitura com taxa configurável.
     *   Valida o formato da placa antes de exibir.
 *   **Simulação de Tráfego:** Um módulo de simulação gera automaticamente veículos com diferentes perfis (velocidade e tipo) para demonstrar o funcionamento sem necessidade de interação manual complexa no QEMU.
+*   **Registro Interno de Infrações:** Armazenamento em buffer circular (ring buffer) com timestamp, tipo de veículo, velocidade, limite aplicado, status de leitura da câmera e placa (quando válida). Contadores agregados por tipo e por sucesso/falha de leitura.
 
 ## Arquitetura do Sistema
 
@@ -62,6 +69,9 @@ As seguintes opções podem ser ajustadas no arquivo `prj.conf` ou via `west bui
 *   `CONFIG_RADAR_SPEED_LIMIT_HEAVY_KMH`: Limite para veículos pesados (padrão: 40 km/h).
 *   `CONFIG_RADAR_WARNING_THRESHOLD_PERCENT`: % do limite para ativar alerta amarelo (padrão: 90%).
 *   `CONFIG_RADAR_CAMERA_FAILURE_RATE_PERCENT`: Probabilidade de falha na leitura da câmera (padrão: 10%).
+*   `CONFIG_RADAR_QUEUE_DEPTH`: Profundidade das filas de mensagens (padrão: 10).
+*   `CONFIG_RADAR_INFRACTION_LOG_SIZE`: Tamanho do ring buffer de infrações (padrão: 32).
+*   `CONFIG_RADAR_AXLE_TIMEOUT_MS`: Timeout de contagem de eixos antes de finalizar a medição (padrão: 2000 ms).
 
 ## Instruções de Execução
 
@@ -88,27 +98,55 @@ O terminal exibirá o log do sistema e os "displays" coloridos conforme os veíc
 ### 3. Sair do QEMU
 Pressione `Ctrl+a` e solte, depois pressione `x`.
 
+## Testes Automatizados
+
+O projeto inclui testes unitários (lógica) e de integração (ZBUS) utilizando o framework **Ztest**.
+
+### Rodar Testes Unitários
+Verifica cálculo de velocidade, classificação de veículos, validação de placas e cenários da máquina de estados (FSM) dos sensores (start/end/timeout).
+
+```bash
+west build -p auto -b mps2/an385 tests/unit -t run
+```
+
+### Rodar Testes de Integração
+Verifica o fluxo de publicação e assinatura do ZBUS.
+
+```bash
+west build -p auto -b mps2/an385 tests/integration -t run
+```
+
 ## Exemplo de Saída
 
 ```text
-[00:00:10.000] <inf> traffic_sim: SIMULATION: Generating Heavy Vehicle (50 km/h - Infraction!)
-[00:00:10.010] <inf> main_control: Speed Calc: 50 km/h (Limit: 40). Status: 2
+[00:00:07.020,000] <inf> traffic_sim: SIMULATION: Generating Heavy Vehicle (50 km/h - Infraction!)
+[00:00:07.040,000] <inf> main_control: Speed Calc: 50 km/h (Limit: 40). Status: 2
 
 ========================================
  RADAR STATUS: INFRACTION 
- Speed: 50 km/h (Limit: 40 km/h)
- Vehicle: Heavy
+ Velocidade: 50 km/h
+ Limite: 40 km/h (Alerta ≥ 36 km/h)
+ Veiculo: Pesado (Eixos: 3)
 ========================================
 
-[00:00:10.010] <inf> camera_thread: Camera Triggered! Processing...
-[00:00:10.520] <inf> camera_thread: Camera Result: MRR8W69
-[00:00:10.530] <inf> main_control: Valid Plate: MRR8W69. Infraction Recorded.
+[00:00:07.040,000] <inf> camera_thread: Camera Triggered! Processing...
+[00:00:07.550,000] <inf> camera_thread: Camera Result: CGI7R63
+[00:00:07.560,000] <inf> main_control: Valid Plate: CGI7R63. Infraction Recorded.
 
 ========================================
  RADAR STATUS: INFRACTION 
- Speed: 0 km/h (Limit: 0 km/h)
- Vehicle: Heavy
- PLATE: MRR8W69
+ Velocidade: 50 km/h
+ Limite: 40 km/h (Alerta ≥ 36 km/h)
+ Veiculo: Pesado
+ Placa: CGI7R63
 ========================================
+
 ```
 
+## Limitações e Suposições
+
+*   Simulação de sensores: Em QEMU (mps2_an385), a injeção de interrupções de GPIO a partir de software é limitada. Para demonstrar o fluxo completo sem interação manual, o módulo `traffic_sim` injeta eventos diretamente na fila de sensores, não através de GPIO reais.
+*   Display: O “Display Dummy” imprime no console com cores ANSI. Não há framebuffer real; a visualização é textual.
+*   Aleatoriedade da câmera: Durante testes (`CONFIG_TEST=y`), a geração de placas é determinística (RNG fixo) para reprodutibilidade. Em execução normal, usa gerador pseudo-aleatório do Zephyr.
+*   Precisão: O cálculo de velocidade assume distância entre sensores configurada corretamente e resolução de tempo baseada em `k_uptime_get()`. Leituras muito curtas podem sofrer discretização.
+*   Carga/Filas: Em saturação das filas, a política é “drop oldest” para priorizar eventos recentes, com logs de aviso.
