@@ -9,12 +9,12 @@
 
 LOG_MODULE_REGISTER(main_control, LOG_LEVEL_INF);
 
-K_MSGQ_DEFINE(sensor_msgq, sizeof(struct sensor_data), CONFIG_RADAR_QUEUE_DEPTH, 4); // Message Queue for Sensor Data
-K_MSGQ_DEFINE(display_msgq, sizeof(struct display_data), CONFIG_RADAR_QUEUE_DEPTH, 4); // Message Queue for Display Data
+K_MSGQ_DEFINE(sensor_msgq, sizeof(sensor_data_t), CONFIG_RADAR_QUEUE_DEPTH, 4); // Message Queue for Sensor Data
+K_MSGQ_DEFINE(display_msgq, sizeof(display_data_t), CONFIG_RADAR_QUEUE_DEPTH, 4); // Message Queue for Display Data
 
 // ZBUS Channels
-ZBUS_CHAN_DEFINE(camera_trigger_chan, struct camera_trigger, NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
-ZBUS_CHAN_DEFINE(camera_result_chan, struct camera_result, NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
+ZBUS_CHAN_DEFINE(camera_trigger_chan, camera_trigger_t, NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
+ZBUS_CHAN_DEFINE(camera_result_chan, camera_result_t, NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
 
 // Thread Definitions
 K_THREAD_DEFINE(sensor_tid, 2048, sensor_thread_entry, NULL, NULL, NULL, 7, 0, 0);
@@ -56,36 +56,16 @@ static void telemetry_thread_entry(void *p1, void *p2, void *p3)
 
 K_THREAD_DEFINE(telemetry_tid, 1024, telemetry_thread_entry, NULL, NULL, NULL, 8, 0, 0);
 
-struct pending_infraction {
+typedef struct {
 	bool active;
 	int64_t timestamp_ms;
 	uint32_t speed_kmh;
 	uint32_t limit_kmh;
-	enum vehicle_type type;
-};
+	vehicle_type_t type;
+} pending_infraction_t;
 
 // Pending infraction context
-static struct pending_infraction pending_infraction_ctx;
-static struct k_spinlock pending_ctx_lock;
-
-/**
- * Helper function to update display with retry
- * @param d_data Pointer to the display data to send
- * @return 0 on success, negative error code on failure
- */
-static int update_display_with_retry(const struct display_data *d_data)
-{
-	int put_ret = k_msgq_put(&display_msgq, d_data, K_NO_WAIT);
-	if (put_ret != 0) {
-		struct display_data dropped;
-		(void)k_msgq_get(&display_msgq, &dropped, K_NO_WAIT);
-		put_ret = k_msgq_put(&display_msgq, d_data, K_NO_WAIT);
-		if (put_ret != 0) {
-			LOG_WRN("display_msgq full, dropping update");
-		}
-	}
-	return put_ret;
-}
+static pending_infraction_t pending_infraction_ctx;
 
 int main(void) {
     LOG_INF("Radar System Initializing...");
@@ -93,7 +73,7 @@ int main(void) {
 	// Subscribe to the camera result channel
     zbus_chan_add_obs(&camera_result_chan, &main_camera_sub, K_FOREVER);
 
-    struct sensor_data s_data;
+    sensor_data_t s_data;
     const struct zbus_channel *chan; // ZBUS channel for camera results
 
     while (1) {
@@ -103,13 +83,14 @@ int main(void) {
             uint32_t distance_mm = CONFIG_RADAR_SENSOR_DISTANCE_MM;
             uint32_t speed_kmh = calculate_speed(distance_mm, s_data.duration_ms);
 
+
             // Determine Limit
             uint32_t limit = (s_data.type == VEHICLE_LIGHT) ? 
                              CONFIG_RADAR_SPEED_LIMIT_LIGHT_KMH : 
                              CONFIG_RADAR_SPEED_LIMIT_HEAVY_KMH;
             
             // Determine Status
-            enum display_status status = STATUS_NORMAL;
+            display_status_t status = STATUS_NORMAL;
             if (speed_kmh > limit) {
                 status = STATUS_INFRACTION;
             } else {
@@ -122,7 +103,7 @@ int main(void) {
             LOG_INF("Speed Calc: %d km/h (Limit: %d). Status: %d", speed_kmh, limit, status);
 
             // Update Display
-            struct display_data d_data;
+            display_data_t d_data;
             d_data.speed_kmh = speed_kmh;
             d_data.limit_kmh = limit;
             d_data.type = s_data.type;
@@ -142,25 +123,30 @@ int main(void) {
                 case STATUS_WARNING: atomic_inc(&status_warning_count); break;
                 case STATUS_INFRACTION: atomic_inc(&status_infraction_count); break;
             }
-            
             // Send the display data to the display queue
-            update_display_with_retry(&d_data);
+            {
+                int put_ret = k_msgq_put(&display_msgq, &d_data, K_NO_WAIT);
+                if (put_ret != 0) {
+                    display_data_t dropped;
+                    (void)k_msgq_get(&display_msgq, &dropped, K_NO_WAIT);
+                    put_ret = k_msgq_put(&display_msgq, &d_data, K_NO_WAIT);
+                    if (put_ret != 0) {
+                        LOG_WRN("display_msgq full, dropping update");
+                    }
+                }
+            }
 
             // Trigger Camera if Infraction
             if (status == STATUS_INFRACTION) {
-                struct camera_trigger trig;
+                camera_trigger_t trig;
                 trig.speed_kmh = speed_kmh;
                 trig.type = s_data.type;
-                
-                /* Record pending infraction context*/
-                k_spinlock_key_t key = k_spin_lock(&pending_ctx_lock);
+                /* Record pending infraction context */
                 pending_infraction_ctx.active = true;
                 pending_infraction_ctx.timestamp_ms = k_uptime_get();
                 pending_infraction_ctx.speed_kmh = speed_kmh;
                 pending_infraction_ctx.limit_kmh = limit;
                 pending_infraction_ctx.type = s_data.type;
-                k_spin_unlock(&pending_ctx_lock, key);
-                
                 int pub_ret = zbus_chan_pub(&camera_trigger_chan, &trig, K_NO_WAIT);
                 if (pub_ret != 0) {
                     LOG_WRN("ZBUS publish to camera_trigger_chan failed: %d", pub_ret);
@@ -172,58 +158,60 @@ int main(void) {
         if (zbus_sub_wait(&main_camera_sub, &chan, K_NO_WAIT) == 0) {
 			// Check if the channel is the camera result channel
 			if (chan == &camera_result_chan) {
-                struct camera_result res;
+                camera_result_t res;
 				// Read the camera result
                 zbus_chan_read(&camera_result_chan, &res, K_NO_WAIT);
                 
                 // Check if the plate is valid
                 if (res.valid_read && validate_plate(res.plate)) {
                     LOG_INF("Valid Plate: %s. Infraction Recorded.", res.plate);
-                    
-                    /* Store infraction record*/
-                    k_spinlock_key_t key = k_spin_lock(&pending_ctx_lock);
-                    struct infraction_record rec = {
+                    /* Store infraction record */
+                    infraction_record_t rec = {
                         .timestamp_ms = pending_infraction_ctx.active ? pending_infraction_ctx.timestamp_ms : k_uptime_get(),
                         .type = pending_infraction_ctx.active ? pending_infraction_ctx.type : VEHICLE_UNKNOWN,
                         .speed_kmh = pending_infraction_ctx.active ? pending_infraction_ctx.speed_kmh : 0,
                         .limit_kmh = pending_infraction_ctx.active ? pending_infraction_ctx.limit_kmh : 0,
                         .valid_read = true
                     };
-                    
+                    strncpy(rec.plate, res.plate, sizeof(rec.plate));
+                    rec.plate[sizeof(rec.plate)-1] = '\0';
+                    infraction_log_add(&rec);
                     /* Send plate info to display with context */
-                    struct display_data d_data;
+                    display_data_t d_data;
                     d_data.speed_kmh = pending_infraction_ctx.active ? pending_infraction_ctx.speed_kmh : 0; 
                     d_data.limit_kmh = pending_infraction_ctx.active ? pending_infraction_ctx.limit_kmh : 0;
                     d_data.type = pending_infraction_ctx.active ? pending_infraction_ctx.type : VEHICLE_UNKNOWN;
                     d_data.status = STATUS_INFRACTION;
                     d_data.axle_count = 0;
                     d_data.warning_kmh = (d_data.limit_kmh * CONFIG_RADAR_WARNING_THRESHOLD_PERCENT) / 100;
-                    
-                    pending_infraction_ctx.active = false;
-                    k_spin_unlock(&pending_ctx_lock, key);
-                    
-                    strncpy(rec.plate, res.plate, sizeof(rec.plate));
-                    rec.plate[sizeof(rec.plate)-1] = '\0';
-                    infraction_log_add(&rec);
-                    
                     strncpy(d_data.plate, res.plate, sizeof(d_data.plate));
-                    update_display_with_retry(&d_data);
+                    {
+                        int put_ret = k_msgq_put(&display_msgq, &d_data, K_NO_WAIT);
+                        if (put_ret != 0) {
+                            display_data_t dropped;
+                            (void)k_msgq_get(&display_msgq, &dropped, K_NO_WAIT);
+                            put_ret = k_msgq_put(&display_msgq, &d_data, K_NO_WAIT);
+                            if (put_ret != 0) {
+                                LOG_WRN("display_msgq full, dropping update");
+                            }
+                        }
+                    }
+                    pending_infraction_ctx.active = false;
 
                 } else {
                     LOG_WRN("Invalid Plate or Read Error");
-                    
-                    /* Still store infraction record with invalid read*/
-                    k_spinlock_key_t key = k_spin_lock(&pending_ctx_lock);
-                    struct infraction_record rec = {
+                    /* Still store infraction record with invalid read */
+                    infraction_record_t rec = {
                         .timestamp_ms = pending_infraction_ctx.active ? pending_infraction_ctx.timestamp_ms : k_uptime_get(),
                         .type = pending_infraction_ctx.active ? pending_infraction_ctx.type : VEHICLE_UNKNOWN,
                         .speed_kmh = pending_infraction_ctx.active ? pending_infraction_ctx.speed_kmh : 0,
                         .limit_kmh = pending_infraction_ctx.active ? pending_infraction_ctx.limit_kmh : 0,
                         .valid_read = false
                     };
-                    
+                    rec.plate[0] = '\0';
+                    infraction_log_add(&rec);
                     /* Also update display with known context (no plate) */
-                    struct display_data d_data;
+                    display_data_t d_data;
                     d_data.speed_kmh = pending_infraction_ctx.active ? pending_infraction_ctx.speed_kmh : 0; 
                     d_data.limit_kmh = pending_infraction_ctx.active ? pending_infraction_ctx.limit_kmh : 0;
                     d_data.type = pending_infraction_ctx.active ? pending_infraction_ctx.type : VEHICLE_UNKNOWN;
@@ -231,14 +219,18 @@ int main(void) {
                     d_data.axle_count = 0;
                     d_data.warning_kmh = (d_data.limit_kmh * CONFIG_RADAR_WARNING_THRESHOLD_PERCENT) / 100;
                     d_data.plate[0] = '\0';
-                    
+                    {
+                        int put_ret = k_msgq_put(&display_msgq, &d_data, K_NO_WAIT);
+                        if (put_ret != 0) {
+                            display_data_t dropped;
+                            (void)k_msgq_get(&display_msgq, &dropped, K_NO_WAIT);
+                            put_ret = k_msgq_put(&display_msgq, &d_data, K_NO_WAIT);
+                            if (put_ret != 0) {
+                                LOG_WRN("display_msgq full, dropping update");
+                            }
+                        }
+                    }
                     pending_infraction_ctx.active = false;
-                    k_spin_unlock(&pending_ctx_lock, key);
-                    
-                    rec.plate[0] = '\0';
-                    infraction_log_add(&rec);
-                    
-                    update_display_with_retry(&d_data);
                 }
             }
         }

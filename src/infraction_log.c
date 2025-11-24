@@ -5,7 +5,7 @@
 #define CONFIG_RADAR_INFRACTION_LOG_SIZE 32
 #endif
 
-static struct infraction_record records[CONFIG_RADAR_INFRACTION_LOG_SIZE];
+static infraction_record_t records[CONFIG_RADAR_INFRACTION_LOG_SIZE];
 static size_t head_index;
 static size_t total_count;
 static uint32_t count_light;
@@ -19,7 +19,7 @@ static struct k_spinlock log_lock;
  * @param record The infraction record to add.
  */
 
-void infraction_log_add(const struct infraction_record *record)
+void infraction_log_add(const infraction_record_t *record)
 {
     k_spinlock_key_t key = k_spin_lock(&log_lock);
    
@@ -51,7 +51,7 @@ void infraction_log_add(const struct infraction_record *record)
  */
 
 
-size_t infraction_log_get_recent(size_t max_records, struct infraction_record *out_records)
+size_t infraction_log_get_recent(size_t max_records, infraction_record_t *out_records)
 {
     if (max_records == 0 || out_records == NULL) {
         return 0;

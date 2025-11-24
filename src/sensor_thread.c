@@ -11,18 +11,18 @@ static const struct gpio_dt_spec sensor_start_spec = GPIO_DT_SPEC_GET(DT_ALIAS(s
 static const struct gpio_dt_spec sensor_end_spec = GPIO_DT_SPEC_GET(DT_ALIAS(sensor1), gpios);
 
 // FSM + lock
-static struct sensor_fsm fsm;
+static sensor_fsm_t fsm;
 static struct k_spinlock fsm_lock;
 
 // Timer for Axle Counting Timeout
 static struct k_timer axle_timer;
-
 /**
  * Timer expiry callback for the axle counting timeout.
  * @param timer_id Pointer to the timer.
  */
 static void axle_timer_expiry(struct k_timer *timer_id);
 
+// GPIO Callbacks
 static struct gpio_callback start_cb_data;
 static struct gpio_callback end_cb_data;
 
@@ -60,7 +60,7 @@ static void end_isr(const struct device *dev, struct gpio_callback *cb, uint32_t
  */
 static void axle_timer_expiry(struct k_timer *timer_id) {
     // Timeout reached, check if we can finalize a measurement
-    struct sensor_data data;
+    sensor_data_t data;
     bool produced = false;
     k_spinlock_key_t key = k_spin_lock(&fsm_lock);
     produced = sensor_fsm_finalize(&fsm, &data);
@@ -73,7 +73,7 @@ static void axle_timer_expiry(struct k_timer *timer_id) {
         int ret = k_msgq_put(&sensor_msgq, &data, K_NO_WAIT);
         if (ret != 0) {
             /* Drop oldest and retry once */
-            struct sensor_data dropped;
+            sensor_data_t dropped;
             (void)k_msgq_get(&sensor_msgq, &dropped, K_NO_WAIT);
             ret = k_msgq_put(&sensor_msgq, &data, K_NO_WAIT);
             if (ret != 0) {
@@ -93,53 +93,65 @@ static void axle_timer_expiry(struct k_timer *timer_id) {
  */
 void sensor_thread_entry(void *p1, void *p2, void *p3) {
     int ret;
-    
+
     sensor_fsm_init(&fsm);
-    
+
+    // Check if the start sensor is ready
     if (!gpio_is_ready_dt(&sensor_start_spec)) {
         LOG_ERR("Sensor Start GPIO not ready");
         return;
     }
+
+    // Check if the end sensor is ready
     if (!gpio_is_ready_dt(&sensor_end_spec)) {
         LOG_ERR("Sensor End GPIO not ready");
         return;
     }
+
+    // Configure the start sensor as input
     ret = gpio_pin_configure_dt(&sensor_start_spec, GPIO_INPUT);
     if (ret < 0) {
         LOG_ERR("Error configuring sensor start: %d", ret);
         return;
     }
+
+    // Configure the end sensor as input
     ret = gpio_pin_configure_dt(&sensor_end_spec, GPIO_INPUT);
     if (ret < 0) {
         LOG_ERR("Error configuring sensor end: %d", ret);
         return;
     }
 
+    // Configure the start sensor as interrupt
     ret = gpio_pin_interrupt_configure_dt(&sensor_start_spec, GPIO_INT_EDGE_RISING);
     if (ret < 0) {
         LOG_ERR("Error configuring interrupt start: %d", ret);
         return;
     }
 
+    // Configure the end sensor as interrupt
     ret = gpio_pin_interrupt_configure_dt(&sensor_end_spec, GPIO_INT_EDGE_RISING);
     if (ret < 0) {
         LOG_ERR("Error configuring interrupt end: %d", ret);
         return;
     }
-    
+
     // Initialize the start callback
     gpio_init_callback(&start_cb_data, start_isr, BIT(sensor_start_spec.pin));
     gpio_add_callback(sensor_start_spec.port, &start_cb_data);
-    
+
     // Initialize the end callback
     gpio_init_callback(&end_cb_data, end_isr, BIT(sensor_end_spec.pin));
     gpio_add_callback(sensor_end_spec.port, &end_cb_data);
-
-    k_timer_init(&axle_timer, axle_timer_expiry, NULL);
-    LOG_INF("Sensor Thread Initialized");
     
+    k_timer_init(&axle_timer, axle_timer_expiry, NULL);
+
+    // Initialize the axle timer
+    LOG_INF("Sensor Thread Initialized");
+
     // Keep thread alive
     while (1) {
         k_sleep(K_FOREVER);
     }
 }
+

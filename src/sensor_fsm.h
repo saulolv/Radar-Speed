@@ -16,12 +16,14 @@ struct sensor_fsm {
     bool speed_measured;
 };
 
+typedef struct sensor_fsm sensor_fsm_t;
+
 /**
  * Classifies the vehicle type based on the number of axles.
  * @param axle_count The number of axles.
  * @return The vehicle type.
  */
-static inline enum vehicle_type classify_axles(uint32_t axle_count)
+static inline vehicle_type_t classify_axles(uint32_t axle_count)
 {
     return (axle_count <= 2) ? VEHICLE_LIGHT : VEHICLE_HEAVY;
 }
@@ -76,7 +78,7 @@ static inline void sensor_fsm_handle_end(struct sensor_fsm *fsm, int64_t timesta
  * @param out_data Pointer to the sensor data.
  * @return True if the measurement was finalized, false otherwise.
  */
-static inline bool sensor_fsm_finalize(struct sensor_fsm *fsm, struct sensor_data *out_data)
+static inline bool sensor_fsm_finalize(struct sensor_fsm *fsm, sensor_data_t *out_data)
 {
     if (fsm->state != SENSOR_ACTIVE) {
         return false;
