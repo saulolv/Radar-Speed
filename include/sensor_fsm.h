@@ -20,7 +20,7 @@ struct sensor_fsm {
 typedef struct sensor_fsm sensor_fsm_t;
 
 /**
- * Classifies the vehicle type based on the number of axles.
+ * @brief Classifies the vehicle type based on the number of axles.
  * @param axle_count The number of axles.
  * @return The vehicle type.
  */
@@ -30,7 +30,7 @@ static inline vehicle_type_t classify_axles(uint32_t axle_count)
 }
 
 /**
- * Initializes the sensor FSM.
+ * @brief Initializes the sensor FSM.
  * @param fsm Pointer to the sensor FSM.
  */
 static inline void sensor_fsm_init(struct sensor_fsm *fsm)
@@ -43,7 +43,7 @@ static inline void sensor_fsm_init(struct sensor_fsm *fsm)
 }
 
 /**
- * Handles the start of a sensor measurement.
+ * @brief Handles the start of a sensor measurement.
  * @param fsm Pointer to the sensor FSM.
  * @param timestamp_ms The timestamp of the start of the measurement.
  */
@@ -61,7 +61,7 @@ static inline void sensor_fsm_handle_start(struct sensor_fsm *fsm, int64_t times
 }
 
 /**
- * Handles the end of a sensor measurement.
+ * @brief Handles the end of a sensor measurement.
  * @param fsm Pointer to the sensor FSM.
  * @param timestamp_ms The timestamp of the end of the measurement.
  */
@@ -74,7 +74,7 @@ static inline void sensor_fsm_handle_end(struct sensor_fsm *fsm, int64_t timesta
 }
 
 /**
- * Finalizes the sensor measurement.
+ * @brief Finalizes the sensor measurement.
  * @param fsm Pointer to the sensor FSM.
  * @param out_data Pointer to the sensor data.
  * @return True if the measurement was finalized, false otherwise.
