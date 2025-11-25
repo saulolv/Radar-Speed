@@ -8,14 +8,14 @@ LOG_MODULE_REGISTER(traffic_sim, LOG_LEVEL_INF);
 
 /**
  * @brief Main entry point for the traffic simulator thread.
- * @param p1 Pointer to the traffic simulator thread data.
- * @param p2 Pointer to the traffic simulator thread data.
- * @param p3 Pointer to the traffic simulator thread data.
+ * @param p1 Unused.
+ * @param p2 Unused.
+ * @param p3 Unused.
  */
 void traffic_sim_thread_entry(void *p1, void *p2, void *p3) {
-    ARGS_UNUSED(p1);
-    ARGS_UNUSED(p2);
-    ARGS_UNUSED(p3);
+    ARG_UNUSED(p1);
+    ARG_UNUSED(p2);
+    ARG_UNUSED(p3);
     LOG_INF("Traffic Simulator Started (Auto-generating vehicles every 5s)");
 
     k_sleep(K_SECONDS(2));

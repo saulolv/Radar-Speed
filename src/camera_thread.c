@@ -57,9 +57,9 @@ static void generate_plate(char *buf) {
  */
 void camera_thread_entry(void *p1, void *p2, void *p3) {
 
-    ARGS_UNUSED(p1);
-    ARGS_UNUSED(p2);
-    ARGS_UNUSED(p3);
+    ARG_UNUSED(p1);
+    ARG_UNUSED(p2);
+    ARG_UNUSED(p3);
 
     const struct zbus_channel *chan;
     

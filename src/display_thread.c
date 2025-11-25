@@ -18,9 +18,9 @@ LOG_MODULE_REGISTER(display_thread, LOG_LEVEL_INF);
  */
 void display_thread_entry(void *p1, void *p2, void *p3) {
 
-    ARGS_UNUSED(p1);
-    ARGS_UNUSED(p2);
-    ARGS_UNUSED(p3);
+    ARG_UNUSED(p1);
+    ARG_UNUSED(p2);
+    ARG_UNUSED(p3);
 
     const struct device *display_dev = DEVICE_DT_GET(DT_NODELABEL(dummy_display));
 

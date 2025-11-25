@@ -48,15 +48,15 @@ static atomic_t status_infraction_count;
 
 /**
  * @brief Main entry point for the telemetry thread.
- * @param p1 Pointer to the telemetry thread data.
- * @param p2 Pointer to the telemetry thread data.
- * @param p3 Pointer to the telemetry thread data.
+ * @param p1 Unused.
+ * @param p2 Unused.
+ * @param p3 Unused.
  */
 static void telemetry_thread_entry(void *p1, void *p2, void *p3)
 {
-    ARGS_UNUSED(p1);
-    ARGS_UNUSED(p2);
-    ARGS_UNUSED(p3);
+    ARG_UNUSED(p1);
+    ARG_UNUSED(p2);
+    ARG_UNUSED(p3);
 
 	while (1) {
 		k_msleep(CONFIG_RADAR_TELEMETRY_INTERVAL_MS);
