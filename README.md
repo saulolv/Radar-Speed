@@ -33,6 +33,8 @@ Este projeto implementa um sistema simulado de radar eletrônico utilizando o **
 
 O software é estruturado em múltiplas threads comunicando-se via **Message Queues** e **ZBUS**:
 
+![Architecture Diagram](docs/architecture.svg)
+
 1.  **Sensor Thread (`src/sensor_thread.c`):**
     *   Monitora interrupções de GPIO (simuladas).
     *   Conta eixos para classificação.
@@ -65,6 +67,7 @@ O software é estruturado em múltiplas threads comunicando-se via **Message Que
     *   Expõe funções compartilhadas como `calculate_speed` e `validate_plate`, usadas pelo firmware e pelos testes.
 8.  **FSM dos Sensores (`src/sensor_fsm.h`):**
     *   Define a máquina de estados inline responsável por contabilizar eixos e medir o intervalo entre sensores.
+
 
 ### Estrutura de Arquivos Principais
 
