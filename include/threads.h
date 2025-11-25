@@ -17,13 +17,5 @@ void sensor_thread_entry(void *p1, void *p2, void *p3);
  */
 void display_thread_entry(void *p1, void *p2, void *p3);
 
-/**
- * @brief Entry point for the camera thread.
- * @param p1 Pointer to the camera thread data.
- * @param p2 Pointer to the camera thread data.
- * @param p3 Pointer to the camera thread data.
- */
-void camera_thread_entry(void *p1, void *p2, void *p3);
-
 #endif
 

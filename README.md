@@ -52,10 +52,10 @@ O software é estruturado em múltiplas threads comunicando-se via **Message Que
     *   Recebe pacotes de estado da Thread Principal.
     *   Formata a saída com cores ANSI e imprime no console/UART.
 
-4.  **Camera Thread (`src/camera_thread.c`):**
-    *   Assina o canal de trigger do ZBUS.
-    *   Simula tempo de processamento e leitura de placa.
-    *   Publica o resultado de volta no ZBUS.
+4.  **Camera Service (`camera_service/`):**
+    *   Módulo externo (Zephyr extra module) habilitado via `CONFIG_CAMERA_SERVICE`.
+    *   Exponibiliza a API `camera_api_capture()` e o canal `chan_camera_evt`.
+    *   Simula tempo de captura, seleciona placas válidas/ inválidas e publica o resultado.
 
 5.  **Traffic Sim (`src/traffic_sim.c`):**
     *   Injeta dados simulados (incluindo velocidades em faixa de alerta) na fila de sensores para validação automática do sistema no QEMU.
@@ -74,7 +74,7 @@ O software é estruturado em múltiplas threads comunicando-se via **Message Que
 | `src/sensor_thread.c`           | Interrupções GPIO e FSM de sensores                      |
 | `src/sensor_fsm.h`              | Máquina de estados inline (start/end/finalize)           |
 | `src/display_thread.c`          | Saída ANSI (verde/amarelo/vermelho)                      |
-| `src/camera_thread.c`           | Consumidor ZBUS + simulação de câmera/LPR                |
+| `camera_service/`               | Serviço de câmera compartilhado (API + thread própria)   |
 | `src/infraction_log.{c,h}`      | Ring buffer e contadores de infrações                    |
 | `src/utils.c`                   | Funções utilitárias (placa + cálculo de velocidade)      |
 | `src/traffic_sim.c`             | Gerador automático de tráfego (Normal/Alerta/Infração)   |
@@ -125,17 +125,16 @@ Pressione `Ctrl+a` e solte, depois pressione `x`.
 O projeto inclui testes unitários (lógica) e de integração (ZBUS) utilizando o framework **Ztest**.
 
 ### Rodar Testes Unitários
-Verifica cálculo de velocidade, classificação de veículos, validação de placas e cenários da máquina de estados (FSM) dos sensores (start/end/timeout).
+As suites em `tests/unit` são executadas com o Twister (framework oficial do Zephyr):
 
 ```bash
-west build -p auto -b mps2/an385 tests/unit -t run
+west twister  -p mps2/an385 -T tests/unit -vvv
 ```
 
 ### Rodar Testes de Integração
-Verifica o fluxo de publicação e assinatura do ZBUS.
 
 ```bash
-west build -p auto -b mps2/an385 tests/integration -t run
+west twister -p mps2/an385 -T tests/integration -vvv
 ```
 
 ## Exemplo de Saída
