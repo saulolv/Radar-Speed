@@ -5,16 +5,21 @@
 #include <zephyr/zbus/zbus.h>
 #include "common.h"
 
+/**
+ * @brief Log Module for Camera Thread
+ */
 LOG_MODULE_REGISTER(camera_thread, LOG_LEVEL_INF);
 
+/**
+ * @brief ZBUS Subscriber for Camera Trigger Channel
+ */
 ZBUS_SUBSCRIBER_DEFINE(camera_sub, 4);
 
 /**
- * Generates a random Mercosul plate number.
- * @param buf The buffer to store the plate number.
+ * @brief Generates a random Mercosul Plate Number.
+ * @param buf The buffer to store the Mercosul Plate Number.
  */
 static void generate_plate(char *buf) {
-    // Mercosul format: ABC1D23
     const char letters[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const char numbers[] = "0123456789";
 #if IS_ENABLED(CONFIG_TEST)
@@ -45,50 +50,51 @@ static void generate_plate(char *buf) {
 }
 
 /**
- * Main entry point for the camera thread.
+ * @brief Main entry point for the camera thread.
  * @param p1 Pointer to the camera thread data.
  * @param p2 Pointer to the camera thread data.
  * @param p3 Pointer to the camera thread data.
  */
 void camera_thread_entry(void *p1, void *p2, void *p3) {
+
+    ARGS_UNUSED(p1);
+    ARGS_UNUSED(p2);
+    ARGS_UNUSED(p3);
+
     const struct zbus_channel *chan;
     
-    // Subscribe to the trigger channel
     zbus_chan_add_obs(&camera_trigger_chan, &camera_sub, K_FOREVER);
 
     LOG_INF("Camera System Ready");
 
     while (1) {
-        // Wait for a trigger from the sensor thread
+        /* Wait for a trigger from the sensor thread */
         if (zbus_sub_wait(&camera_sub, &chan, K_FOREVER) == 0) {
             if (chan == &camera_trigger_chan) {
-                // Read the trigger data
                 camera_trigger_t trigger;
                 zbus_chan_read(&camera_trigger_chan, &trigger, K_NO_WAIT);
                 
                 LOG_INF("Camera Triggered! Processing...");
                 
-                // Simulate processing time
+                /* Simulate processing time */
                 k_msleep(500); 
                 
                 camera_result_t result;
-                // Generate a random failure rate
+                /* Generate a random failure rate */
                 uint32_t failure_rate = CONFIG_RADAR_CAMERA_FAILURE_RATE_PERCENT;
                 uint32_t chance = sys_rand32_get() % 100;
                 
-                // If the chance is less than the failure rate, the read failed
                 if (chance < failure_rate) {
                     LOG_WRN("Camera simulation: Read Failed");
                     result.valid_read = false;
                     result.plate[0] = '\0';
                 } else {
-                    // Generate a random plate
                     generate_plate(result.plate);
                     result.valid_read = true;
                     LOG_INF("Camera Result: %s", result.plate);
                 }
 
-                // Publish the result to the camera result channel
+                /* Publish the result to the camera result channel */
                 int pub_ret = zbus_chan_pub(&camera_result_chan, &result, K_NO_WAIT);
                 if (pub_ret != 0) {
                     LOG_WRN("ZBUS publish to camera_result_chan failed: %d", pub_ret);

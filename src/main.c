@@ -9,22 +9,37 @@
 
 LOG_MODULE_REGISTER(main_control, LOG_LEVEL_INF);
 
+/**
+ * @brief Message Queue for Sensor Data
+ */
 K_MSGQ_DEFINE(sensor_msgq, sizeof(sensor_data_t), CONFIG_RADAR_QUEUE_DEPTH, 4); // Message Queue for Sensor Data
+
+/**
+ * @brief Message Queue for Display Data
+ */
 K_MSGQ_DEFINE(display_msgq, sizeof(display_data_t), CONFIG_RADAR_QUEUE_DEPTH, 4); // Message Queue for Display Data
 
-// ZBUS Channels
+/**
+ * @brief ZBUS Channel for Camera Trigger
+ */
 ZBUS_CHAN_DEFINE(camera_trigger_chan, camera_trigger_t, NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
 ZBUS_CHAN_DEFINE(camera_result_chan, camera_result_t, NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
 
-// Thread Definitions
+/**
+ * @brief Thread Definitions for Sensor, Display, and Camera
+ */
 K_THREAD_DEFINE(sensor_tid, 2048, sensor_thread_entry, NULL, NULL, NULL, 7, 0, 0);
 K_THREAD_DEFINE(display_tid, 2048, display_thread_entry, NULL, NULL, NULL, 7, 0, 0);
 K_THREAD_DEFINE(camera_tid, 2048, camera_thread_entry, NULL, NULL, NULL, 7, 0, 0);
 
-// Subscriber for Main Thread
+/**
+ * @brief Subscriber for Main Thread
+ */
 ZBUS_SUBSCRIBER_DEFINE(main_camera_sub, 4);
 
-// Telemetry counters
+/**
+ * @brief Telemetry Counters
+ */
 static atomic_t vehicle_light_count;
 static atomic_t vehicle_heavy_count;
 static atomic_t status_normal_count;
@@ -32,16 +47,20 @@ static atomic_t status_warning_count;
 static atomic_t status_infraction_count;
 
 /**
- * Main entry point for the telemetry thread.
+ * @brief Main entry point for the telemetry thread.
  * @param p1 Pointer to the telemetry thread data.
  * @param p2 Pointer to the telemetry thread data.
  * @param p3 Pointer to the telemetry thread data.
  */
 static void telemetry_thread_entry(void *p1, void *p2, void *p3)
 {
+    ARGS_UNUSED(p1);
+    ARGS_UNUSED(p2);
+    ARGS_UNUSED(p3);
+
 	while (1) {
-        // Get the telemetry counters
 		k_msleep(CONFIG_RADAR_TELEMETRY_INTERVAL_MS);
+        /* Get the telemetry counters */
 		uint32_t light = (uint32_t)atomic_get(&vehicle_light_count);
 		uint32_t heavy = (uint32_t)atomic_get(&vehicle_heavy_count);
 		uint32_t normal = (uint32_t)atomic_get(&status_normal_count);
@@ -54,8 +73,13 @@ static void telemetry_thread_entry(void *p1, void *p2, void *p3)
 	}
 }
 
+/**
+ * @brief Thread Definition for Telemetry
+ */
 K_THREAD_DEFINE(telemetry_tid, 1024, telemetry_thread_entry, NULL, NULL, NULL, 8, 0, 0);
 
+
+/* > Pending Infraction Context */
 typedef struct {
 	bool active;
 	int64_t timestamp_ms;
@@ -64,32 +88,29 @@ typedef struct {
 	vehicle_type_t type;
 } pending_infraction_t;
 
-// Pending infraction context
 static pending_infraction_t pending_infraction_ctx;
 
 int main(void) {
     LOG_INF("Radar System Initializing...");
 
-	// Subscribe to the camera result channel
+	/* Subscribe to the camera result channel */
     zbus_chan_add_obs(&camera_result_chan, &main_camera_sub, K_FOREVER);
 
     sensor_data_t s_data;
-    const struct zbus_channel *chan; // ZBUS channel for camera results
+    const struct zbus_channel *chan; /* ZBUS channel for camera results */
 
     while (1) {
-        // Check for new sensor data
         if (k_msgq_get(&sensor_msgq, &s_data, K_NO_WAIT) == 0) {
-            // Calculate Speed
             uint32_t distance_mm = CONFIG_RADAR_SENSOR_DISTANCE_MM;
             uint32_t speed_kmh = calculate_speed(distance_mm, s_data.duration_ms);
 
 
-            // Determine Limit
+            /* Determine Limit */
             uint32_t limit = (s_data.type == VEHICLE_LIGHT) ? 
                              CONFIG_RADAR_SPEED_LIMIT_LIGHT_KMH : 
                              CONFIG_RADAR_SPEED_LIMIT_HEAVY_KMH;
             
-            // Determine Status
+            /* Determine Status */
             display_status_t status = STATUS_NORMAL;
             if (speed_kmh > limit) {
                 status = STATUS_INFRACTION;
@@ -102,7 +123,6 @@ int main(void) {
 
             LOG_INF("Speed Calc: %d km/h (Limit: %d). Status: %d", speed_kmh, limit, status);
 
-            // Update Display
             display_data_t d_data;
             d_data.speed_kmh = speed_kmh;
             d_data.limit_kmh = limit;
@@ -112,7 +132,6 @@ int main(void) {
             d_data.axle_count = s_data.axle_count;
             d_data.warning_kmh = (limit * CONFIG_RADAR_WARNING_THRESHOLD_PERCENT) / 100;
 
-            // Update telemetry counters
             if (s_data.type == VEHICLE_LIGHT) {
                 atomic_inc(&vehicle_light_count);
             } else if (s_data.type == VEHICLE_HEAVY) {
@@ -123,7 +142,8 @@ int main(void) {
                 case STATUS_WARNING: atomic_inc(&status_warning_count); break;
                 case STATUS_INFRACTION: atomic_inc(&status_infraction_count); break;
             }
-            // Send the display data to the display queue
+
+            /* Send the display data to the display queue */
             {
                 int put_ret = k_msgq_put(&display_msgq, &d_data, K_NO_WAIT);
                 if (put_ret != 0) {
@@ -136,7 +156,6 @@ int main(void) {
                 }
             }
 
-            // Trigger Camera if Infraction
             if (status == STATUS_INFRACTION) {
                 camera_trigger_t trig;
                 trig.speed_kmh = speed_kmh;
@@ -154,15 +173,12 @@ int main(void) {
             }
         }
 
-        // Check for Camera Results
+        /* Check for Camera Results */
         if (zbus_sub_wait(&main_camera_sub, &chan, K_NO_WAIT) == 0) {
-			// Check if the channel is the camera result channel
 			if (chan == &camera_result_chan) {
                 camera_result_t res;
-				// Read the camera result
                 zbus_chan_read(&camera_result_chan, &res, K_NO_WAIT);
                 
-                // Check if the plate is valid
                 if (res.valid_read && validate_plate(res.plate)) {
                     LOG_INF("Valid Plate: %s. Infraction Recorded.", res.plate);
                     /* Store infraction record */

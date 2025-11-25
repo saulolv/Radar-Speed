@@ -8,6 +8,7 @@ enum sensor_state {
     SENSOR_ACTIVE
 };
 
+/* > Sensor FSM */
 struct sensor_fsm {
     enum sensor_state state;
     int64_t start_time;

@@ -6,17 +6,24 @@ LOG_MODULE_REGISTER(traffic_sim, LOG_LEVEL_INF);
 
 #include "common.h"
 
+/**
+ * @brief Main entry point for the traffic simulator thread.
+ * @param p1 Pointer to the traffic simulator thread data.
+ * @param p2 Pointer to the traffic simulator thread data.
+ * @param p3 Pointer to the traffic simulator thread data.
+ */
 void traffic_sim_thread_entry(void *p1, void *p2, void *p3) {
+    ARGS_UNUSED(p1);
+    ARGS_UNUSED(p2);
+    ARGS_UNUSED(p3);
     LOG_INF("Traffic Simulator Started (Auto-generating vehicles every 5s)");
 
-    k_sleep(K_SECONDS(2)); // Wait for system to settle
+    k_sleep(K_SECONDS(2));
 
     while (1) {
         sensor_data_t s_data;
 
-        // 1. Simulate a Light Vehicle (Normal Speed)
-        // Distance 5m, Speed 50km/h
-        // Time = Dist / Speed = 0.005 km / 50 km/h = 0.0001 h = 0.36 s = 360ms
+        /* 1. Simulate a Light Vehicle (Normal Speed) */
         s_data.timestamp_start = k_uptime_get();
         s_data.duration_ms = 360; 
         s_data.timestamp_end = s_data.timestamp_start + 360;
@@ -28,8 +35,7 @@ void traffic_sim_thread_entry(void *p1, void *p2, void *p3) {
         
         k_sleep(K_SECONDS(5));
 
-        // 1b. Simulate a Light Vehicle in WARNING band (~58 km/h)
-        // 58 km/h -> duration ≈ (5000 * 36) / (580 * 10) ≈ 310 ms
+        /* 1b. Simulate a Light Vehicle in WARNING band (~58 km/h) */
         s_data.timestamp_start = k_uptime_get();
         s_data.duration_ms = 310;
         s_data.timestamp_end = s_data.timestamp_start + 310;
@@ -41,9 +47,7 @@ void traffic_sim_thread_entry(void *p1, void *p2, void *p3) {
 
         k_sleep(K_SECONDS(5));
 
-        // 2. Simulate a Heavy Vehicle (Infraction)
-        // Limit is 40 km/h. Let's go 50 km/h.
-        // Time = 360ms (same speed as above, but for heavy it's a violation)
+        /* 2. Simulate a Heavy Vehicle (Infraction) */
         s_data.timestamp_start = k_uptime_get();
         s_data.duration_ms = 360; 
         s_data.timestamp_end = s_data.timestamp_start + 360;
@@ -55,8 +59,7 @@ void traffic_sim_thread_entry(void *p1, void *p2, void *p3) {
 
         k_sleep(K_SECONDS(5));
         
-        // 3. Simulate High Speed Light Vehicle (Infraction)
-        // 80 km/h. Time = 225ms
+        /* 3. Simulate High Speed Light Vehicle (Infraction) */
         s_data.timestamp_start = k_uptime_get();
         s_data.duration_ms = 225; 
         s_data.timestamp_end = s_data.timestamp_start + 225;
@@ -68,8 +71,7 @@ void traffic_sim_thread_entry(void *p1, void *p2, void *p3) {
         
         k_sleep(K_SECONDS(5));
 
-        // 3b. Simulate Heavy Vehicle in WARNING band (~38 km/h)
-        // 38 km/h -> duration ≈ (5000 * 36) / (380 * 10) ≈ 474ms
+        /* 3b. Simulate Heavy Vehicle in WARNING band (~38 km/h) */
         s_data.timestamp_start = k_uptime_get();
         s_data.duration_ms = 474;
         s_data.timestamp_end = s_data.timestamp_start + 474;

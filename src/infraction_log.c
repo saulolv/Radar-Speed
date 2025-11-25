@@ -15,44 +15,38 @@ static uint32_t count_invalid_read;
 static struct k_spinlock log_lock;
 
 /**
- * Adds an infraction record to the log.
+ * @brief Adds an infraction record to the log.
  * @param record The infraction record to add.
  */
 void infraction_log_add(const infraction_record_t *record)
 {
     k_spinlock_key_t key = k_spin_lock(&log_lock);
    
-    // Add the record to the log
+    /* Add the record to the log */
     records[head_index] = *record;
-    // Increment the head index
     head_index = (head_index + 1) % CONFIG_RADAR_INFRACTION_LOG_SIZE;
-    // Increment the total count if it is less than the log size
     if (total_count < CONFIG_RADAR_INFRACTION_LOG_SIZE) {
         total_count++;
     }
-    // Increment the count of heavy vehicles if the type is heavy
     if (record->type == VEHICLE_HEAVY) {
         count_heavy++;
-    // Increment the count of light vehicles if the type is light
     } else if (record->type == VEHICLE_LIGHT) {
    	count_light++;
     }
-    // Increment the count of valid reads if the valid read is true
     if (record->valid_read) {
         count_valid_read++;
     } else {
         count_invalid_read++;
     }
    
-    // Unlock the log lock
     k_spin_unlock(&log_lock, key);
 }
 
 /**
- * Gets the most recent infraction records from the log.
+ * @brief Gets the most recent infraction records from the log.
  * @param max_records The maximum number of records to get.
  * @param out_records The array to store the records.
- * @return The numer of records copied.
+ * @return The number of records copied.
  */
 size_t infraction_log_get_recent(size_t max_records, infraction_record_t *out_records)
 {
@@ -60,30 +54,27 @@ size_t infraction_log_get_recent(size_t max_records, infraction_record_t *out_re
         return 0;
     }
 
-    // Lock the log lock
     k_spinlock_key_t key = k_spin_lock(&log_lock);
    
     size_t available = total_count;
-    // Set the available to the total count if the total count is greater than the log size
     if (available > CONFIG_RADAR_INFRACTION_LOG_SIZE) {
         available = CONFIG_RADAR_INFRACTION_LOG_SIZE;
     }
-    // Set the to copy to the max records if the max records is less than the available
+    /* Set the to copy to the max records if the max records is less than the available */
     size_t to_copy = (max_records < available) ? max_records : available;
     
-    // Copy from newest to oldest into out_records[0..to_copy-1]
+    /* Copy from newest to oldest into out_records[0..to_copy-1] */
     for (size_t i = 0; i < to_copy; i++) {
         size_t idx = (head_index + CONFIG_RADAR_INFRACTION_LOG_SIZE - 1 - i) % CONFIG_RADAR_INFRACTION_LOG_SIZE;
         out_records[i] = records[idx];
     }
    
-    // Unlock the log lock
     k_spin_unlock(&log_lock, key);
     return to_copy;
 }
 
 /**
- * Gets the counters for the infraction log.
+ * @brief Gets the counters for the infraction log.
  * @param light_count The count of light vehicles.
  * @param heavy_count Pointer to the count of heavy vehicles.
  * @param valid_reads Pointer to the count of valid reads.
@@ -91,7 +82,6 @@ size_t infraction_log_get_recent(size_t max_records, infraction_record_t *out_re
  */
 void infraction_log_get_counters(uint32_t *light_count, uint32_t *heavy_count, uint32_t *valid_reads, uint32_t *invalid_reads)
 {
-    // Lock the log lock
     k_spinlock_key_t key = k_spin_lock(&log_lock);
     if (light_count) {
         *light_count = count_light;
