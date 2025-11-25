@@ -90,11 +90,16 @@ static void axle_timer_expiry(struct k_timer *timer_id) {
 
 /**
  * @brief Main entry point for the sensor thread.
- * @param p1 Pointer to the sensor thread data.
- * @param p2 Pointer to the sensor thread data.
- * @param p3 Pointer to the sensor thread data.
+ * @param p1 Unused.
+ * @param p2 Unused.
+ * @param p3 Unused.
  */
 void sensor_thread_entry(void *p1, void *p2, void *p3) {
+
+    ARGS_UNUSED(p1);
+    ARGS_UNUSED(p2);
+    ARGS_UNUSED(p3);
+
     int ret;
 
     sensor_fsm_init(&fsm);
@@ -105,7 +110,7 @@ void sensor_thread_entry(void *p1, void *p2, void *p3) {
         return;
     }
 
-        // Check if the end sensor is ready
+    /* Check if the end sensor is ready */
     if (!gpio_is_ready_dt(&sensor_end_spec)) {
         LOG_ERR("Sensor End GPIO not ready");
         return;

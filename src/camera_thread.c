@@ -51,9 +51,9 @@ static void generate_plate(char *buf) {
 
 /**
  * @brief Main entry point for the camera thread.
- * @param p1 Pointer to the camera thread data.
- * @param p2 Pointer to the camera thread data.
- * @param p3 Pointer to the camera thread data.
+ * @param p1 Unused.
+ * @param p2 Unused.
+ * @param p3 Unused.
  */
 void camera_thread_entry(void *p1, void *p2, void *p3) {
 

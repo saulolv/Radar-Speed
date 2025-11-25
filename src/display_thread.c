@@ -12,9 +12,9 @@ LOG_MODULE_REGISTER(display_thread, LOG_LEVEL_INF);
 
 /**
  * @brief Main entry point for the display thread.
- * @param p1 Pointer to the display thread data.
- * @param p2 Pointer to the display thread data.
- * @param p3 Pointer to the display thread data.
+ * @param p1 Unused.
+ * @param p2 Unused.
+ * @param p3 Unused.
  */
 void display_thread_entry(void *p1, void *p2, void *p3) {
 
