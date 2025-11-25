@@ -39,13 +39,41 @@ static void generate_plate(char *buf) {
 #define RAND32() sys_rand32_get()
 #endif
     
-    buf[0] = letters[RAND32() % 26];
-    buf[1] = letters[RAND32() % 26];
-    buf[2] = letters[RAND32() % 26];
-    buf[3] = numbers[RAND32() % 10];
-    buf[4] = letters[RAND32() % 26];
-    buf[5] = numbers[RAND32() % 10];
-    buf[6] = numbers[RAND32() % 10];
+    int country_mode = RAND32() % 4; // 0=BR, 1=AR, 2=UY, 3=PY
+
+    if (country_mode == 0) {
+        buf[0] = letters[RAND32() % 26];
+        buf[1] = letters[RAND32() % 26];
+        buf[2] = letters[RAND32() % 26];
+        buf[3] = numbers[RAND32() % 10];
+        buf[4] = letters[RAND32() % 26];
+        buf[5] = numbers[RAND32() % 10];
+        buf[6] = numbers[RAND32() % 10];
+    } else if (country_mode == 1) {
+        buf[0] = letters[RAND32() % 26];
+        buf[1] = letters[RAND32() % 26];
+        buf[2] = numbers[RAND32() % 10];
+        buf[3] = numbers[RAND32() % 10];
+        buf[4] = numbers[RAND32() % 10];
+        buf[5] = letters[RAND32() % 26];
+        buf[6] = letters[RAND32() % 26];
+    } else if (country_mode == 2) {
+        buf[0] = letters[RAND32() % 26];
+        buf[1] = letters[RAND32() % 26];
+        buf[2] = letters[RAND32() % 26];
+        buf[3] = numbers[RAND32() % 10];
+        buf[4] = numbers[RAND32() % 10];
+        buf[5] = numbers[RAND32() % 10];
+        buf[6] = numbers[RAND32() % 10];
+    } else {
+        buf[0] = letters[RAND32() % 26];
+        buf[1] = letters[RAND32() % 26];
+        buf[2] = letters[RAND32() % 26];
+        buf[3] = letters[RAND32() % 26];
+        buf[4] = numbers[RAND32() % 10];
+        buf[5] = numbers[RAND32() % 10];
+        buf[6] = numbers[RAND32() % 10];
+    }
     buf[7] = '\0';
 }
 

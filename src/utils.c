@@ -38,15 +38,23 @@ static inline bool util_is_digit(char c) {
  */
 bool validate_plate(const char *plate) {
 	if (strlen(plate) != 7) return false;
-	/* Check LLL */
-	for (int i = 0; i < 3; i++) if (!util_is_letter(plate[i])) return false;
-	/* Check N */
-	if (!util_is_digit(plate[3])) return false;
-	/* Check L */
-	if (!util_is_letter(plate[4])) return false;
-	/* Check NN */
-	for (int i = 5; i < 7; i++) if (!util_is_digit(plate[i])) return false;
-	return true;
+
+    bool is_brasil = util_is_letter(plate[0]) && util_is_letter(plate[1]) && util_is_letter(plate[2]) &&
+                     util_is_digit(plate[3]) &&
+                     util_is_letter(plate[4]) &&
+                     util_is_digit(plate[5]) && util_is_digit(plate[6]);
+
+    bool is_argentina = util_is_letter(plate[0]) && util_is_letter(plate[1]) &&
+                        util_is_digit(plate[2]) && util_is_digit(plate[3]) && util_is_digit(plate[4]) &&
+                        util_is_letter(plate[5]) && util_is_letter(plate[6]);
+
+    bool is_uruguay = util_is_letter(plate[0]) && util_is_letter(plate[1]) && util_is_letter(plate[2]) &&
+                      util_is_digit(plate[3]) && util_is_digit(plate[4]) && util_is_digit(plate[5]) && util_is_digit(plate[6]);
+
+    bool is_paraguay = util_is_letter(plate[0]) && util_is_letter(plate[1]) && util_is_letter(plate[2]) && util_is_letter(plate[3]) &&
+                       util_is_digit(plate[4]) && util_is_digit(plate[5]) && util_is_digit(plate[6]);
+
+    return is_brasil || is_argentina || is_uruguay || is_paraguay;
 }
 
 
