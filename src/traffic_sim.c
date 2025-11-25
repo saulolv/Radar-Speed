@@ -16,7 +16,7 @@ void traffic_sim_thread_entry(void *p1, void *p2, void *p3) {
     ARG_UNUSED(p1);
     ARG_UNUSED(p2);
     ARG_UNUSED(p3);
-    LOG_INF("Traffic Simulator Started (Auto-generating vehicles every 5s)");
+    LOG_INF("Traffic Simulator Started (Auto-generating vehicles every 10s)");
 
     k_sleep(K_SECONDS(2));
 
@@ -33,7 +33,7 @@ void traffic_sim_thread_entry(void *p1, void *p2, void *p3) {
         LOG_INF("SIMULATION: Generating Light Vehicle (50 km/h)");
         k_msgq_put(&sensor_msgq, &s_data, K_NO_WAIT);
         
-        k_sleep(K_SECONDS(5));
+        k_sleep(K_SECONDS(10));
 
         /* 1b. Simulate a Light Vehicle in WARNING band (~58 km/h) */
         s_data.timestamp_start = k_uptime_get();
@@ -45,7 +45,7 @@ void traffic_sim_thread_entry(void *p1, void *p2, void *p3) {
         LOG_INF("SIMULATION: Generating Light Vehicle (58 km/h - Warning)");
         k_msgq_put(&sensor_msgq, &s_data, K_NO_WAIT);
 
-        k_sleep(K_SECONDS(5));
+        k_sleep(K_SECONDS(10));
 
         /* 2. Simulate a Heavy Vehicle (Infraction) */
         s_data.timestamp_start = k_uptime_get();
@@ -57,7 +57,7 @@ void traffic_sim_thread_entry(void *p1, void *p2, void *p3) {
         LOG_INF("SIMULATION: Generating Heavy Vehicle (50 km/h - Infraction!)");
         k_msgq_put(&sensor_msgq, &s_data, K_NO_WAIT);
 
-        k_sleep(K_SECONDS(5));
+        k_sleep(K_SECONDS(10));
         
         /* 3. Simulate High Speed Light Vehicle (Infraction) */
         s_data.timestamp_start = k_uptime_get();
@@ -69,7 +69,7 @@ void traffic_sim_thread_entry(void *p1, void *p2, void *p3) {
         LOG_INF("SIMULATION: Generating Light Vehicle (80 km/h - Infraction!)");
         k_msgq_put(&sensor_msgq, &s_data, K_NO_WAIT);
         
-        k_sleep(K_SECONDS(5));
+        k_sleep(K_SECONDS(10));
 
         /* 3b. Simulate Heavy Vehicle in WARNING band (~38 km/h) */
         s_data.timestamp_start = k_uptime_get();
@@ -81,9 +81,12 @@ void traffic_sim_thread_entry(void *p1, void *p2, void *p3) {
         LOG_INF("SIMULATION: Generating Heavy Vehicle (38 km/h - Warning)");
         k_msgq_put(&sensor_msgq, &s_data, K_NO_WAIT);
 
-        k_sleep(K_SECONDS(5));
+        k_sleep(K_SECONDS(10));
     }
 }
 
+/**
+ * @brief Thread Definition for Traffic Simulator
+ */
 K_THREAD_DEFINE(traffic_sim_tid, 1024, traffic_sim_thread_entry, NULL, NULL, NULL, 8, 0, 0);
 

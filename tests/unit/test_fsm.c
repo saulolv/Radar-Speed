@@ -3,6 +3,9 @@
 #include "../../src/common.h"
 #include "../../src/sensor_fsm.h"
 
+/**
+ * @brief Test case for start, start, end, and finalize light vehicle
+ */
 ZTEST(radar_fsm, test_start_start_end_finalize_light)
 {
     struct sensor_fsm fsm;
@@ -21,6 +24,9 @@ ZTEST(radar_fsm, test_start_start_end_finalize_light)
     zassert_equal(out.type, VEHICLE_LIGHT, "Type should be LIGHT");
 }
 
+/**
+ * @brief Test case for timeout without end should not produce data
+ */
 ZTEST(radar_fsm, test_timeout_without_end_no_data)
 {
     struct sensor_fsm fsm;
@@ -33,6 +39,9 @@ ZTEST(radar_fsm, test_timeout_without_end_no_data)
     zassert_false(ok, "No end signal, should not produce data");
 }
 
+/**
+ * @brief Test case for end without start should not produce data
+ */
 ZTEST(radar_fsm, test_end_without_start_no_data)
 {
     struct sensor_fsm fsm;
@@ -45,6 +54,9 @@ ZTEST(radar_fsm, test_end_without_start_no_data)
     zassert_false(ok, "End without start should not produce data");
 }
 
+/**
+ * @brief Test case for heavy classification
+ */
 ZTEST(radar_fsm, test_heavy_classification)
 {
     struct sensor_fsm fsm;
@@ -62,4 +74,7 @@ ZTEST(radar_fsm, test_heavy_classification)
     zassert_equal(out.type, VEHICLE_HEAVY, "Type should be HEAVY");
 }
 
+/**
+ * @brief Test suite for radar FSM
+ */
 ZTEST_SUITE(radar_fsm, NULL, NULL, NULL, NULL, NULL);

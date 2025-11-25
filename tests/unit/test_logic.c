@@ -1,6 +1,9 @@
 #include <zephyr/ztest.h>
 #include "common.h"
 
+/**
+ * @brief Test case for speed calculation
+ */
 ZTEST(radar_unit, test_speed_calculation)
 {
     // 5000mm (5m) in 360ms -> 50 km/h
@@ -18,6 +21,9 @@ ZTEST(radar_unit, test_speed_calculation)
     zassert_equal(calculate_speed(5000, 0), 0, "Zero duration should return 0");
 }
 
+/**
+ * @brief Test case for vehicle classification
+ */
 ZTEST(radar_unit, test_vehicle_classification)
 {
     // Logic: <= 2 axles is LIGHT, > 2 is HEAVY
@@ -39,6 +45,9 @@ ZTEST(radar_unit, test_vehicle_classification)
     zassert_equal(type_truck, VEHICLE_HEAVY, "5 axles should be HEAVY");
 }
 
+/**
+ * @brief Test case for plate validation
+ */
 ZTEST(radar_unit, test_plate_validation)
 {
     // Valid Mercosul: LLLNLNN (ABC1D23)
@@ -55,4 +64,7 @@ ZTEST(radar_unit, test_plate_validation)
     zassert_true(validate_plate("abc1d23"), "Lowercase should be accepted (normalized to uppercase)");
 }
 
+/**
+ * @brief Test suite for radar unit
+ */
 ZTEST_SUITE(radar_unit, NULL, NULL, NULL, NULL, NULL);

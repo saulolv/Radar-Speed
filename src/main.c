@@ -23,6 +23,10 @@ K_MSGQ_DEFINE(display_msgq, sizeof(display_data_t), CONFIG_RADAR_QUEUE_DEPTH, 4)
  * @brief ZBUS Channel for Camera Trigger
  */
 ZBUS_CHAN_DEFINE(camera_trigger_chan, camera_trigger_t, NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
+
+/**
+ * @brief ZBUS Channel for Camera Result
+ */
 ZBUS_CHAN_DEFINE(camera_result_chan, camera_result_t, NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
 
 /**
@@ -93,7 +97,7 @@ static pending_infraction_t pending_infraction_ctx;
 int main(void) {
     LOG_INF("Radar System Initializing...");
 
-	/* Subscribe to the camera result channel */
+	/* Subscribe to the ZBUS channel for camera result */
     zbus_chan_add_obs(&camera_result_chan, &main_camera_sub, K_FOREVER);
 
     sensor_data_t s_data;
@@ -105,12 +109,10 @@ int main(void) {
             uint32_t speed_kmh = calculate_speed(distance_mm, s_data.duration_ms);
 
 
-            /* Determine Limit */
             uint32_t limit = (s_data.type == VEHICLE_LIGHT) ? 
                              CONFIG_RADAR_SPEED_LIMIT_LIGHT_KMH : 
                              CONFIG_RADAR_SPEED_LIMIT_HEAVY_KMH;
             
-            /* Determine Status */
             display_status_t status = STATUS_NORMAL;
             if (speed_kmh > limit) {
                 status = STATUS_INFRACTION;

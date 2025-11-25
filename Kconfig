@@ -48,7 +48,7 @@ config RADAR_INFRACTION_LOG_SIZE
 
 config RADAR_AXLE_TIMEOUT_MS
 	int "Axle counting timeout (ms)"
-	default 2000
+	default 1000
 	range 100 10000
 	help
 	  Timeout after last axle pulse to finalize a measurement.

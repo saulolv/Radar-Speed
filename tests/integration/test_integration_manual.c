@@ -2,8 +2,14 @@
 #include <string.h>
 #include "common.h"
 
+/**
+ * @brief Test suite for integration simple
+ */
 ZTEST_SUITE(integration_simple, NULL, NULL, NULL, NULL, NULL);
 
+/**
+ * @brief Test case for sensor data structure
+ */
 ZTEST(integration_simple, test_sensor_data_structure)
 {
     struct sensor_data s_data = {
@@ -19,6 +25,9 @@ ZTEST(integration_simple, test_sensor_data_structure)
     zassert_equal(s_data.duration_ms, 360, "Duration should be 360ms");
 }
 
+/**
+ * @brief Test case for display data structure
+ */
 ZTEST(integration_simple, test_display_data_structure)
 {
     struct display_data d_data = {
@@ -35,6 +44,9 @@ ZTEST(integration_simple, test_display_data_structure)
     zassert_equal(d_data.type, VEHICLE_LIGHT, "Type should be light");
 }
 
+/**
+ * @brief Test case for camera trigger structure
+ */
 ZTEST(integration_simple, test_camera_trigger_structure)
 {
     struct camera_trigger trigger = {
@@ -46,6 +58,9 @@ ZTEST(integration_simple, test_camera_trigger_structure)
     zassert_equal(trigger.type, VEHICLE_LIGHT, "Should be light vehicle");
 }
 
+/**
+ * @brief Test case for camera result structure
+ */
 ZTEST(integration_simple, test_camera_result_structure)
 {
     struct camera_result result = {
@@ -57,6 +72,9 @@ ZTEST(integration_simple, test_camera_result_structure)
     zassert_true(validate_plate(result.plate), "Plate should be valid");
 }
 
+/**
+ * @brief Test case for speed and classification integration
+ */
 ZTEST(integration_simple, test_speed_and_classification_integration)
 {
 
@@ -73,6 +91,9 @@ ZTEST(integration_simple, test_speed_and_classification_integration)
     zassert_true(speed_kmh > heavy_limit, "Would be infraction for heavy vehicle");
 }
 
+/**
+ * @brief Test case for status determination
+ */
 ZTEST(integration_simple, test_status_determination)
 {
     uint32_t speed = 55;
@@ -92,6 +113,9 @@ ZTEST(integration_simple, test_status_determination)
     zassert_equal(status, STATUS_WARNING, "55 km/h should be WARNING (limit 60, threshold 54)");
 }
 
+/**
+ * @brief Test case for heavy vehicle speed
+ */
 ZTEST(integration_simple, test_heavy_vehicle_speed)
 {
     uint32_t speed = 50;

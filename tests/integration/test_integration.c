@@ -2,20 +2,24 @@
 #include <zephyr/zbus/zbus.h>
 #include "../../src/common.h"
 
-/*
- * Integration Test: ZBUS Flow
- * We will simulate the Main Thread publishing a trigger, 
- * and check if the Camera Thread (mocked or real) receives it.
- * 
- * Since we are running unit tests, we might not want to spawn ALL threads.
- * We will define a simple test that uses ZBUS APIs.
+/**
+ * @brief ZBUS Channel for Camera Trigger
  */
-
 ZBUS_CHAN_DEFINE(camera_trigger_chan, camera_trigger_t, NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
+
+/**
+ * @brief ZBUS Channel for Camera Result
+ */
 ZBUS_CHAN_DEFINE(camera_result_chan, camera_result_t, NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
 
+/**
+ * @brief ZBUS Subscriber for Test
+ */
 ZBUS_SUBSCRIBER_DEFINE(test_sub, 4);
 
+/**
+ * @brief Test case for ZBUS trigger
+ */
 ZTEST(radar_integration, test_zbus_trigger)
 {
     // Subscribe
@@ -38,5 +42,8 @@ ZTEST(radar_integration, test_zbus_trigger)
     zassert_equal(read_trig.speed_kmh, 80, "Speed mismatch");
 }
 
+/**
+ * @brief Test suite for radar integration
+ */
 ZTEST_SUITE(radar_integration, NULL, NULL, NULL, NULL, NULL);
 

@@ -1,7 +1,4 @@
-test_logic:
-  tags: test_framework
-  type: unit
-  platform_allow: native_sim mps2_an385
-  extra_configs:
-    - CONFIG_ZTEST=y
-
+tests:
+  unit.manual:
+    platform_allow: mps2/an385
+    tags: unit
