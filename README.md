@@ -20,7 +20,7 @@ Este projeto implementa um sistema simulado de radar eletrônico utilizando o **
     *   Gera placas no padrão Mercosul aleatórias.
     *   Simula falhas de leitura com taxa configurável.
     *   Valida o formato da placa antes de exibir.
-*   **Simulação de Tráfego:** Um módulo de simulação gera automaticamente veículos com diferentes perfis (velocidade e tipo) para demonstrar o funcionamento sem necessidade de interação manual complexa no QEMU.
+*   **Simulação de Tráfego:** Um módulo de simulação gera automaticamente veículos com diferentes perfis (velocidade e tipo) – incluindo casos “Normal”, “Alerta” e “Infração” – para demonstrar o funcionamento sem necessidade de interação manual complexa no QEMU.
 *   **Registro Interno de Infrações:** Armazenamento em buffer circular (ring buffer) com timestamp, tipo de veículo, velocidade, limite aplicado, status de leitura da câmera e placa (quando válida). Contadores agregados por tipo e por sucesso/falha de leitura.
 
 ## Arquitetura do Sistema
@@ -52,7 +52,29 @@ O software é estruturado em múltiplas threads comunicando-se via **Message Que
     *   Publica o resultado de volta no ZBUS.
 
 5.  **Traffic Sim (`src/traffic_sim.c`):**
-    *   Injeta dados simulados na fila de sensores para validação automática do sistema no QEMU.
+    *   Injeta dados simulados (incluindo velocidades em faixa de alerta) na fila de sensores para validação automática do sistema no QEMU.
+6.  **Registro de Infrações (`src/infraction_log.c` / `src/infraction_log.h`):**
+    *   Mantém um histórico em buffer circular com contadores agregados.
+7.  **Utilitários (`src/utils.c`):**
+    *   Expõe funções compartilhadas como `calculate_speed` e `validate_plate`, usadas pelo firmware e pelos testes.
+8.  **FSM dos Sensores (`src/sensor_fsm.h`):**
+    *   Define a máquina de estados inline responsável por contabilizar eixos e medir o intervalo entre sensores.
+
+### Estrutura de Arquivos Principais
+
+| Caminho                          | Descrição resumida                                      |
+|---------------------------------|----------------------------------------------------------|
+| `src/main.c`                    | Thread principal, telemetria e orquestração              |
+| `src/sensor_thread.c`           | Interrupções GPIO e FSM de sensores                      |
+| `src/sensor_fsm.h`              | Máquina de estados inline (start/end/finalize)           |
+| `src/display_thread.c`          | Saída ANSI (verde/amarelo/vermelho)                      |
+| `src/camera_thread.c`           | Consumidor ZBUS + simulação de câmera/LPR                |
+| `src/infraction_log.{c,h}`      | Ring buffer e contadores de infrações                    |
+| `src/utils.c`                   | Funções utilitárias (placa + cálculo de velocidade)      |
+| `src/traffic_sim.c`             | Gerador automático de tráfego (Normal/Alerta/Infração)   |
+| `tests/unit/test_logic.c`       | Testes de cálculo, classificação e validação de placa    |
+| `tests/unit/test_fsm.c`         | Testes unitários da FSM de sensores                      |
+| `tests/integration/test_integration.c` | Teste do fluxo ZBUS (publish/subscribe)           |
 
 ## Configuração (Kconfig)
 
