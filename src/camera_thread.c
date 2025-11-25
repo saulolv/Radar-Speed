@@ -82,11 +82,13 @@ void camera_thread_entry(void *p1, void *p2, void *p3) {
                     result.valid_read = false;
                     result.plate[0] = '\0';
                 } else {
+                    // Generate a random plate
                     generate_plate(result.plate);
                     result.valid_read = true;
                     LOG_INF("Camera Result: %s", result.plate);
                 }
-                
+
+                // Publish the result to the camera result channel
                 int pub_ret = zbus_chan_pub(&camera_result_chan, &result, K_NO_WAIT);
                 if (pub_ret != 0) {
                     LOG_WRN("ZBUS publish to camera_result_chan failed: %d", pub_ret);

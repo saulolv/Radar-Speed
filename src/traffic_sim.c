@@ -4,19 +4,6 @@
 
 LOG_MODULE_REGISTER(traffic_sim, LOG_LEVEL_INF);
 
-// Get GPIOs (same as sensor thread, but we will try to configure them to trigger logic or just logs)
-// NOTE: On real hardware, we can't drive an INPUT pin high internally without loopback.
-// Since we want to verify the logic without rewiring the whole sensor_thread to use software events,
-// we will use a trick: We will re-open the pins and toggle them if possible, 
-// OR simpler: We will just emit log messages saying "Simulating Car..." 
-// and manually inject messages into the queues to demonstrate the REST of the system (Main -> Display -> Camera).
-//
-// HOWEVER, to test the Sensor Thread logic itself, we really need GPIO interrupts.
-// On QEMU MPS2, we can't easily inject GPIO interrupts from software unless we use the QEMU Monitor.
-//
-// ALTERNATIVE: We will inject messages directly into 'sensor_msgq' to simulate the OUTPUT of the sensor thread.
-// This verifies Main Logic, Classification, Display, and Camera.
-
 #include "common.h"
 
 void traffic_sim_thread_entry(void *p1, void *p2, void *p3) {
