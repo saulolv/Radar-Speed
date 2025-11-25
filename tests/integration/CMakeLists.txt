@@ -4,5 +4,5 @@ project(radar_integration_tests)
 
 target_include_directories(app PRIVATE ../../include)
 
-target_sources(app PRIVATE test_integration.c test_integration_manual.c)
+target_sources(app PRIVATE ../../src/utils.c test_integration.c test_integration_manual.c)
 

@@ -1,6 +1,6 @@
 #include <zephyr/ztest.h>
 #include <zephyr/zbus/zbus.h>
-#include "../../src/common.h"
+#include "common.h"
 
 /**
  * @brief ZBUS Channel for Camera Trigger

@@ -32,29 +32,82 @@ static inline bool util_is_digit(char c) {
 }
 
 /**
+ * @brief Checks whether a plate matches a symbolic pattern.
+ * Pattern tokens:
+ *  - 'L': alphabetic character (case-insensitive)
+ *  - 'N': numeric character
+ *  - any other char: must match literally
+ */
+static inline bool util_matches_pattern(const char *plate, const char *pattern)
+{
+	size_t plate_len = strlen(plate);
+	size_t pattern_len = strlen(pattern);
+
+	if (plate_len != pattern_len) {
+		return false;
+	}
+
+	for (size_t i = 0; i < pattern_len; ++i) {
+		char token = pattern[i];
+		char c = util_to_upper_char(plate[i]);
+
+		if (token == 'L') {
+			if (!util_is_letter(c)) {
+				return false;
+			}
+		} else if (token == 'N') {
+			if (!util_is_digit(c)) {
+				return false;
+			}
+		} else if (token != c) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/**
  * @brief Validates a Mercosul plate number.
  * @param plate The plate number to validate.
  * @return True if the plate number is valid, false otherwise.
  */
 bool validate_plate(const char *plate) {
-	if (strlen(plate) != 7) return false;
+	char sanitized[16];
+	size_t sanitized_len = 0;
 
-    bool is_brasil = util_is_letter(plate[0]) && util_is_letter(plate[1]) && util_is_letter(plate[2]) &&
-                     util_is_digit(plate[3]) &&
-                     util_is_letter(plate[4]) &&
-                     util_is_digit(plate[5]) && util_is_digit(plate[6]);
+	for (size_t i = 0; plate[i] != '\0'; ++i) {
+		char c = plate[i];
+		if (c == ' ' || c == '-' || c == '_') {
+			continue;
+		}
+		if (sanitized_len >= ARRAY_SIZE(sanitized) - 1) {
+			return false;
+		}
+		sanitized[sanitized_len++] = c;
+	}
+	sanitized[sanitized_len] = '\0';
 
-    bool is_argentina = util_is_letter(plate[0]) && util_is_letter(plate[1]) &&
-                        util_is_digit(plate[2]) && util_is_digit(plate[3]) && util_is_digit(plate[4]) &&
-                        util_is_letter(plate[5]) && util_is_letter(plate[6]);
+	if (sanitized_len != 7) {
+		return false;
+	}
 
-    bool is_uruguay = util_is_letter(plate[0]) && util_is_letter(plate[1]) && util_is_letter(plate[2]) &&
-                      util_is_digit(plate[3]) && util_is_digit(plate[4]) && util_is_digit(plate[5]) && util_is_digit(plate[6]);
+	static const char *mercosur_patterns[] = {
+		"LLLNLNN", /* Brasil */
+		"LLNNNLL", /* Argentina */
+		"LLLNNNN", /* Uruguay */
+		"LLLLNNN", /* Paraguay cars */
+		"NNNLLLL", /* Paraguay motorcycles */
+		"LLNNNNN", /* Bolivia */
+	};
 
-    bool is_paraguay = util_is_letter(plate[0]) && util_is_letter(plate[1]) && util_is_letter(plate[2]) && util_is_letter(plate[3]) &&
-                       util_is_digit(plate[4]) && util_is_digit(plate[5]) && util_is_digit(plate[6]);
+	for (size_t i = 0; i < ARRAY_SIZE(mercosur_patterns); ++i) {
+		if (util_matches_pattern(sanitized, mercosur_patterns[i])) {
+			return true;
+		}
+	}
 
-    return is_brasil || is_argentina || is_uruguay || is_paraguay;
+	return false;
 }
 
 

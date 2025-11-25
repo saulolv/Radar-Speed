@@ -3,6 +3,11 @@
 #include <zephyr/kernel.h>
 #include "common.h"
 
+/* > Heuristics for dynamic axle window calculation */
+#define SENSOR_FSM_MIN_AXLE_WINDOW_MS   200U
+#define SENSOR_FSM_MAX_AXLE_WINDOW_MS   4000U
+#define SENSOR_FSM_REFERENCE_SPEED_KMH  CONFIG_RADAR_SPEED_LIMIT_LIGHT_KMH
+
 enum sensor_state {
     SENSOR_IDLE,
     SENSOR_ACTIVE
@@ -15,6 +20,7 @@ struct sensor_fsm {
     int64_t end_time;
     uint32_t axle_count;
     bool speed_measured;
+    uint32_t axle_window_ms;
 };
 
 typedef struct sensor_fsm sensor_fsm_t;
@@ -40,6 +46,7 @@ static inline void sensor_fsm_init(struct sensor_fsm *fsm)
     fsm->end_time = 0;
     fsm->axle_count = 0;
     fsm->speed_measured = false;
+    fsm->axle_window_ms = CONFIG_RADAR_AXLE_TIMEOUT_MS;
 }
 
 /**
@@ -47,6 +54,30 @@ static inline void sensor_fsm_init(struct sensor_fsm *fsm)
  * @param fsm Pointer to the sensor FSM.
  * @param timestamp_ms The timestamp of the start of the measurement.
  */
+static inline uint32_t sensor_fsm_get_axle_window_ms(const struct sensor_fsm *fsm)
+{
+    return fsm->axle_window_ms;
+}
+
+static inline uint32_t sensor_fsm_compute_axle_window(uint32_t speed_kmh)
+{
+    if (speed_kmh == 0U) {
+        return CONFIG_RADAR_AXLE_TIMEOUT_MS;
+    }
+
+    uint64_t scaled = (uint64_t)CONFIG_RADAR_AXLE_TIMEOUT_MS *
+                      (uint64_t)SENSOR_FSM_REFERENCE_SPEED_KMH;
+    uint64_t window_ms = scaled / speed_kmh;
+
+    if (window_ms < SENSOR_FSM_MIN_AXLE_WINDOW_MS) {
+        window_ms = SENSOR_FSM_MIN_AXLE_WINDOW_MS;
+    } else if (window_ms > SENSOR_FSM_MAX_AXLE_WINDOW_MS) {
+        window_ms = SENSOR_FSM_MAX_AXLE_WINDOW_MS;
+    }
+
+    return (uint32_t)window_ms;
+}
+
 static inline void sensor_fsm_handle_start(struct sensor_fsm *fsm, int64_t timestamp_ms)
 {
     if (fsm->state == SENSOR_IDLE) {
@@ -65,12 +96,17 @@ static inline void sensor_fsm_handle_start(struct sensor_fsm *fsm, int64_t times
  * @param fsm Pointer to the sensor FSM.
  * @param timestamp_ms The timestamp of the end of the measurement.
  */
-static inline void sensor_fsm_handle_end(struct sensor_fsm *fsm, int64_t timestamp_ms)
+static inline bool sensor_fsm_handle_end(struct sensor_fsm *fsm, int64_t timestamp_ms)
 {
     if (fsm->state == SENSOR_ACTIVE && !fsm->speed_measured) {
         fsm->end_time = timestamp_ms;
         fsm->speed_measured = true;
+        uint32_t duration_ms = (uint32_t)(fsm->end_time - fsm->start_time);
+        uint32_t speed_kmh = calculate_speed(CONFIG_RADAR_SENSOR_DISTANCE_MM, duration_ms);
+        fsm->axle_window_ms = sensor_fsm_compute_axle_window(speed_kmh);
+        return true;
     }
+    return false;
 }
 
 /**
@@ -101,6 +137,7 @@ static inline bool sensor_fsm_finalize(struct sensor_fsm *fsm, sensor_data_t *ou
     fsm->end_time = 0;
     fsm->axle_count = 0;
     fsm->speed_measured = false;
+    fsm->axle_window_ms = CONFIG_RADAR_AXLE_TIMEOUT_MS;
     return produced;
 }
 #endif

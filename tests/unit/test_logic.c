@@ -53,14 +53,19 @@ ZTEST(radar_unit, test_plate_validation)
     // Valid Mercosul: LLLNLNN (ABC1D23)
     zassert_true(validate_plate("ABC1D23"), "ABC1D23 should be valid");
     zassert_true(validate_plate("XYZ9W88"), "XYZ9W88 should be valid");
+    zassert_true(validate_plate("SAB1234"), "Uruguay format should be valid");
+    zassert_true(validate_plate("ABCD123"), "Paraguay car format should be valid");
+    zassert_true(validate_plate("123ABCD"), "Paraguay motorcycle format should be valid");
+    zassert_true(validate_plate("AB12345"), "Bolivia format should be valid");
+    zassert_true(validate_plate("AB 12345"), "Bolivia format with space should be valid");
 
     // Invalid length
     zassert_false(validate_plate("ABC1D2"), "Too short");
     zassert_false(validate_plate("ABC1D233"), "Too long");
 
     // Invalid format
-    zassert_false(validate_plate("ABC1234"), "Old format should be invalid (LLLNNNN)");
-    zassert_false(validate_plate("123ABCD"), "Wrong chars");
+    zassert_false(validate_plate("A1B2C3D"), "Random mix should be invalid");
+    zassert_false(validate_plate("12AB34C"), "Wrong order of letters/digits");
     zassert_true(validate_plate("abc1d23"), "Lowercase should be accepted (normalized to uppercase)");
 }
 

@@ -12,7 +12,7 @@ ZTEST_SUITE(integration_simple, NULL, NULL, NULL, NULL, NULL);
  */
 ZTEST(integration_simple, test_sensor_data_structure)
 {
-    struct sensor_data s_data = {
+    sensor_data_t s_data = {
         .timestamp_start = 1000,
         .duration_ms = 360,
         .timestamp_end = 1360,
@@ -30,7 +30,7 @@ ZTEST(integration_simple, test_sensor_data_structure)
  */
 ZTEST(integration_simple, test_display_data_structure)
 {
-    struct display_data d_data = {
+    display_data_t d_data = {
         .speed_kmh = 50,
         .limit_kmh = 60,
         .type = VEHICLE_LIGHT,
@@ -49,7 +49,7 @@ ZTEST(integration_simple, test_display_data_structure)
  */
 ZTEST(integration_simple, test_camera_trigger_structure)
 {
-    struct camera_trigger trigger = {
+    camera_trigger_t trigger = {
         .speed_kmh = 80,
         .type = VEHICLE_LIGHT
     };
@@ -63,7 +63,7 @@ ZTEST(integration_simple, test_camera_trigger_structure)
  */
 ZTEST(integration_simple, test_camera_result_structure)
 {
-    struct camera_result result = {
+    camera_result_t result = {
         .valid_read = true
     };
     strcpy(result.plate, "ABC1D23");
@@ -100,7 +100,7 @@ ZTEST(integration_simple, test_status_determination)
     uint32_t limit = 60;
     uint32_t warning_threshold = (limit * 90) / 100; // 54 km/h
     
-    enum display_status status;
+    display_status_t status;
     
     if (speed > limit) {
         status = STATUS_INFRACTION;
@@ -121,7 +121,7 @@ ZTEST(integration_simple, test_heavy_vehicle_speed)
     uint32_t speed = 50;
     uint32_t heavy_limit = CONFIG_RADAR_SPEED_LIMIT_HEAVY_KMH;
     
-    enum display_status status = (speed > heavy_limit) ? STATUS_INFRACTION : STATUS_NORMAL;
+    display_status_t status = (speed > heavy_limit) ? STATUS_INFRACTION : STATUS_NORMAL;
     
     zassert_equal(status, STATUS_INFRACTION, "Heavy vehicle at 50 km/h should be infraction");
     zassert_equal(heavy_limit, 40, "Heavy vehicle limit should be 40 km/h");

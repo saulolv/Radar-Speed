@@ -39,9 +39,10 @@ static void start_isr(const struct device *dev, struct gpio_callback *cb, uint32
     int64_t now = k_uptime_get();
     k_spinlock_key_t key = k_spin_lock(&fsm_lock);
     sensor_fsm_handle_start(&fsm, now);
+    uint32_t window_ms = sensor_fsm_get_axle_window_ms(&fsm);
     k_spin_unlock(&fsm_lock, key);
     /* Start or refresh timeout timer (configurable) */
-    k_timer_start(&axle_timer, K_MSEC(CONFIG_RADAR_AXLE_TIMEOUT_MS), K_NO_WAIT);
+    k_timer_start(&axle_timer, K_MSEC(window_ms), K_NO_WAIT);
 }
 
 /**
@@ -53,8 +54,12 @@ static void start_isr(const struct device *dev, struct gpio_callback *cb, uint32
 static void end_isr(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
     int64_t now = k_uptime_get();
     k_spinlock_key_t key = k_spin_lock(&fsm_lock);
-    sensor_fsm_handle_end(&fsm, now);
+    bool window_updated = sensor_fsm_handle_end(&fsm, now);
+    uint32_t window_ms = sensor_fsm_get_axle_window_ms(&fsm);
     k_spin_unlock(&fsm_lock, key);
+    if (window_updated) {
+        k_timer_start(&axle_timer, K_MSEC(window_ms), K_NO_WAIT);
+    }
 }
 
 /**

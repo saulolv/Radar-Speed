@@ -1,7 +1,6 @@
 #include <zephyr/ztest.h>
 
-#include "../../src/common.h"
-#include "../../src/sensor_fsm.h"
+#include "sensor_fsm.h"
 
 /**
  * @brief Test case for start, start, end, and finalize light vehicle
@@ -72,6 +71,36 @@ ZTEST(radar_fsm, test_heavy_classification)
     zassert_true(ok, "Finalize should produce data");
     zassert_equal(out.axle_count, 3, "Axle count mismatch");
     zassert_equal(out.type, VEHICLE_HEAVY, "Type should be HEAVY");
+}
+
+/**
+ * @brief Test dynamic axle window scales with measured speed
+ */
+ZTEST(radar_fsm, test_axle_window_scales_with_speed)
+{
+    struct sensor_fsm fsm;
+    sensor_fsm_init(&fsm);
+
+    /* Fast car -> smaller window */
+    sensor_fsm_handle_start(&fsm, 0);
+    bool updated_fast = sensor_fsm_handle_end(&fsm, 200); /* 5 m in 200 ms ~ 90 km/h */
+    zassert_true(updated_fast, "End should update the window for fast case");
+    uint32_t fast_window = sensor_fsm_get_axle_window_ms(&fsm);
+
+    sensor_data_t out;
+    (void)sensor_fsm_finalize(&fsm, &out);
+
+    /* Slow car -> larger window */
+    sensor_fsm_handle_start(&fsm, 0);
+    bool updated_slow = sensor_fsm_handle_end(&fsm, 1000); /* 5 m in 1000 ms ~ 18 km/h */
+    zassert_true(updated_slow, "End should update the window for slow case");
+    uint32_t slow_window = sensor_fsm_get_axle_window_ms(&fsm);
+
+    zassert_true(fast_window < CONFIG_RADAR_AXLE_TIMEOUT_MS,
+                 "Fast vehicle should reduce the window");
+    zassert_true(slow_window > CONFIG_RADAR_AXLE_TIMEOUT_MS,
+                 "Slow vehicle should increase the window");
+    zassert_true(slow_window > fast_window, "Window must grow when speed drops");
 }
 
 /**
