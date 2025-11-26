@@ -35,6 +35,8 @@ O software é estruturado em múltiplas threads comunicando-se via **Message Que
 
 ![Architecture Diagram](docs/architecture.svg)
 
+![Architecture Diagram](docs/architecture_2.svg)
+
 1.  **Sensor Thread (`src/sensor_thread.c`):**
     *   Monitora interrupções de GPIO (simuladas).
     *   Conta eixos para classificação.
